@@ -10,7 +10,9 @@
 
 1. 检查本地 Python、SSH、Git。读取 config.example.json，集中收集缺失的非敏感资源参数。
 2. 执行 init，填写 config.local.json。指导我通过 SSH Agent/私钥路径连接、从云控制台核对主机指纹。
-3. 指导我在安全终端输入 CF_API_TOKEN，不要求我把值粘到聊天。确认 Zone 激活、Full (strict)、云安全组。
+3. 按 docs/cloudflare-token.md 用新手能理解的语言解释 Token、Zone 和权限，并指导我在 Cloudflare 创建 Token、找到 Zone ID。
+   在实际运行部署命令的终端安全设置 CF_API_TOKEN，不要求我把值粘到聊天；确认你的执行环境能够取得它，不能假定不同终端会共享变量。
+   确认 Zone 激活、Full (strict)、云安全组；说明来源 IP 白名单是可选项。
 4. 执行 plan 和 preflight。说明计划中的域名、端口、服务器目录及维护任务。
 5. 我要求搭建即授权按这个范围进行常规部署；预检通过后继续 deploy，不对每个命令重复确认。
    如发现已有业务、DNS 冲突、需要删除/迁移资源或资源不足，先报告具体问题，不绕过保护。

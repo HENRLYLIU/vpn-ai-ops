@@ -15,6 +15,7 @@ vpn-ai-ops
 ## Current Focus
 
 * 可分享的 AI 驱动个人 VPN 自动部署与维护工具
+* 已发布 GitHub；补充面向新手的 Cloudflare Token 教程与入口链接
 
 ---
 
@@ -38,9 +39,9 @@ specs/feat-20261019-ai-vpn/
 
 ## Next Steps
 
-1. 用户验收首版文档与命令设计
+1. 用户验收新手教程与命令设计
 2. 使用新测试 VPS 和独立域名执行 docs/testing.md 云端验收
-3. 完成验收后由用户选择远端仓库并发布
+3. 完成云端验收后更新已公开仓库 HENRLYLIU/vpn-ai-ops 的测试记录
 
 ---
 

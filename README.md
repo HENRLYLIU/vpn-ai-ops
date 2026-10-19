@@ -22,7 +22,7 @@ AI 负责理解资源、执行命令、诊断问题；脚本负责可重复的�
 
 1. 一台**全新的 Ubuntu 24.04 VPS**，公网 IPv4，amd64 或 arm64；建议至少 1 GiB 内存、2 GiB 空闲磁盘。
 2. 一个已在 Cloudflare 激活的域名。SSL/TLS 模式设为 **Full (strict)**。已有网站使用其他模式时先评估，不要为演示直接改生产域名全站设置。
-3. 一个仅作用于该 Zone 的 API Token，权限包含 **Zone / DNS / Edit、Zone / Zone / Read、Zone / Zone Settings / Read**。若限制来源 IP，需要允许控制电脑和 VPS。
+3. 在 Cloudflare 创建一个 **API Token（给脚本使用的专用钥匙）**，并且只授权给你用来搭建 VPN 的域名。它用于自动设置域名解析和续期证书。**不懂 Token、Zone 或权限怎么选？直接照着 [Cloudflare Token 新手教程](docs/cloudflare-token.md) 操作**，里面有逐项填写说明；来源 IP 限制是可选项。
 4. 可用的 SSH 公钥登录：root，或带免密 sudo 的账户。VPS 有 Python 3.10+（Ubuntu 24.04 通常自带）。
 5. 本地/AI 执行环境：macOS、Linux 或 Windows WSL，Python 3.10+、OpenSSH、Git；无需 pip 安装。AI 必须具有终端、SSH 和联网能力。
 6. 云安全组允许实际 SSH 端口、`443/tcp`、`443/udp`、`8443/tcp`。无需开放 `80`。项目不会操作云厂商安全组。
@@ -40,7 +40,7 @@ AI 负责理解资源、执行命令、诊断问题；脚本负责可重复的�
 交付时区分已验证项与需要我在手机/电脑上完成的 TUN、DNS 验收。
 ```
 
-用户资料填写清单在 [docs/setup.md](docs/setup.md)。完整部署提示词在 [prompts/deploy.md](prompts/deploy.md)。
+第一次使用 Cloudflare，请先看 [Token 创建教程](docs/cloudflare-token.md)，再按 [资源填写清单](docs/setup.md) 准备信息。完整部署提示词在 [prompts/deploy.md](prompts/deploy.md)。
 
 ## 实际执行的命令
 
@@ -54,16 +54,22 @@ python3 vpnctl.py plan
 
 首次 SSH 连接前，通过云控制台核对主机指纹，再手动连接一次，将已核对的主机加入 `known_hosts`。脚本始终使用严格主机校验，不会关闭检查，也不会自动信任未经核实的指纹。
 
-在 Bash / Zsh 终端隐藏输入 Token，不要将值直接写进命令历史：
+在将要运行部署命令的 Bash / Zsh 终端中，先单独执行下面这一行：
 
 ```bash
 read -rs CF_API_TOKEN
+```
+
+粘贴 Token 后按回车。输入过程中看不到字符是正常的。然后在**同一个终端**继续执行：
+
+```bash
 export CF_API_TOKEN
-# 粘贴 Token 后按回车；输入过程不显示
 python3 vpnctl.py preflight
 python3 vpnctl.py deploy
 unset CF_API_TOKEN
 ```
+
+若 AI 使用另一个终端或云端环境，它不会自动获得这里设置的 Token；请按 [教程中的使用说明](docs/cloudflare-token.md#use-token) 让 AI 指导你安全传入，不要发到聊天里。
 
 `deploy` 会创建缺失 DNS、安装依赖、签发证书、生成密钥、启动容器，安装每日巡检与每周备份，最后将客户端文件保存到 `artifacts/`。重新执行不会轮换已生成密钥；完整部署已有标记时只进行健康检查和重新导出。
 

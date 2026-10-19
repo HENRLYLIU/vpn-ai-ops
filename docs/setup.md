@@ -1,5 +1,7 @@
 # 资源与参数
 
+第一次配置 Cloudflare？先看 [Cloudflare API Token 新手教程](cloudflare-token.md)。它会解释 Token 和 Zone 是什么、三个权限分别做什么，以及页面上每一步怎么选。
+
 AI 一次收集以下非敏感信息即可，不要索取私钥全文或要求用户把 Token 粘贴到聊天。
 
 | 字段 | 示例 | 说明 |
@@ -8,7 +10,7 @@ AI 一次收集以下非敏感信息即可，不要索取私钥全文或要求�
 | ssh_user | `root` | 也可使用免密 sudo 用户 |
 | ssh_port | `22` | 不能与 443/8443 冲突 |
 | ssh_identity_file | `""` | 留空用 SSH 默认密钥/Agent；否则填本机路径 |
-| zone_id | 32 位十六进制 | Cloudflare Zone 概览中的 Zone ID，不是 Account ID |
+| zone_id | 32 位十六进制 | 域名区域的编号，不是 Token 或 Account ID；[查看获取步骤](cloudflare-token.md#find-zone-id) |
 | base_domain | `example.com` | 必须与 Zone 名称完全一致 |
 | vpn_domain | `vpn.example.com` | 项目创建 DNS Only A 记录 |
 | ws_domain | `ws.example.com` | 项目创建 Proxied A 记录 |
@@ -19,7 +21,7 @@ AI 一次收集以下非敏感信息即可，不要索取私钥全文或要求�
 步骤：
 
 1. 在 Cloudflare 激活 Zone，并手动确认 Full (strict)。本项目只读检查此全站设置。
-2. 为单个 Zone 创建 DNS Edit、Zone Read、Zone Settings Read Token。不要使用 Global API Key。
+2. 按 [Token 新手教程](cloudflare-token.md) 为这个域名创建专用钥匙，添加 DNS Edit、Zone Read、Zone Settings Read 三条权限。教程也说明了可选的 IP 白名单和有效期设置。
 3. 在云安全组开放实际 SSH 端口、443 TCP/UDP、8443 TCP。Docker 发布端口不能仅依赖 UFW 做访问控制。
 4. 从云控制台取得 SSH 主机公钥指纹，在首次登录时比对。不要用 `StrictHostKeyChecking=no` 绕过验证。
 5. 手动验证公钥登录、`python3 --version`，非 root 用户还要验证 `sudo -n true`。脚本没有自动装公钥、改 sshd 或关密码登录。
