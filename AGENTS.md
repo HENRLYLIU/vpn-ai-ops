@@ -4,12 +4,19 @@
 
 本项目首先是给 AI 使用的 VPN 运维工具。用户要求部署、巡检、备份、升级、回滚时，使用已有命令，不需要为每次运维创建 Spec。以下长期开发流程只适用于修改仓库代码。
 
-运维入口：先读 `README.md`、`docs/operations.md`，再按 `prompts/deploy.md` 或 `prompts/maintain.md` 执行。
+文档统一按实际使用的工具项目表述，围绕环境准备、部署、运维、验收和发布组织内容。
 
+运维入口：先读 `README.md`、`docs/operations.md`，再按 `prompts/deploy.md` 或 `prompts/maintain.md` 执行。首次部署还要读 `docs/ai-environment.md` 和 `docs/setup.md`。
+
+- 面向非技术用户：用户提供资源与授权，AI 负责查询参数、填写配置、执行命令、排错与验收。能由工具获取的信息不要求用户手工查找；不以命令说明代替已经授权的实际执行。
+- 缺少工具或权限时，只请求最小且具体的用户动作，记录进度后继续。MCP 已连接不代表凭据、权限或云安全组已就绪。
+- 用户按 README 授权首次接入后，可通过具备安全秘密输入能力的工具建立并验证专用 SSH 公钥登录；不得覆盖已有 authorized_keys，不读私钥正文、不修改 sshd。只有密码且工具不支持安全接入时，先解决该能力缺口，不能将密码放入命令、脚本或聊天。现有 CLI 本身不支持密码认证。
+- Cloudflare API MCP 用于资源发现及权限范围内的操作；当前 CLI 的 preflight/deploy 仍依赖 CF_API_TOKEN，VPS 续期也需要独立凭据。不得提取 MCP OAuth 会话或把 Token 正文返回聊天。创建 Token 必须同时满足实际权限和安全交付能力，否则引导一次安全输入。
 - 用户选择本项目并明确要求搭建，即授权按已说明方案创建本项目的 DNS、安装依赖、签发证书、启动受管容器及定时任务。无需对每条常规命令重复询问。
 - 必须先运行 `plan` 和 `preflight`。发现已有非受管服务、DNS 冲突或需要迁移/删除业务时，停止对应变更并给出具体方案。
+- 当前脚本只读检查 Cloudflare Full (strict)。共享 Zone 的设置变更必须先评估影响并取得明确同意；不能为通过预检直接修改。云安全组依赖独立的云厂商工具和授权。
 - 不把 SSH 私钥、Cloudflare Token、节点链接、完整配置、备份内容输出到聊天、Git 或报告。不要读取用户私钥内容；使用 SSH Agent 或文件路径。
-- 真实值只写被 Git 忽略的 `config.local.json`；Token 通过 `CF_API_TOKEN` 传入，不写该 JSON。用户在本机安全输入秘密。
+- 真实资源参数只写被 Git 忽略的 `config.local.json`；Token 通过安全存储或本机安全输入注入实际执行进程的 `CF_API_TOKEN`，不写该 JSON。密码不写配置。
 - 报告分开写：服务端检查、三线路真实客户端出口、用户设备 TUN/DNS。缺少证据时写未验证；不要仅凭容器 running 宣称全链路成功。
 - 首版只管理全新 Ubuntu 24.04，或由本项目创建且标记匹配的部署。不接管旧 sing-box/Sub2API，不自动修改 sshd，不重置 UFW，不自动重启操作系统。
 - `upgrade` 必须指定稳定版本，先阅读该版本官方迁移说明。命令自带备份与服务端检查失败回滚；随后必须运行 `verify`，失败时使用返回的快照回滚。

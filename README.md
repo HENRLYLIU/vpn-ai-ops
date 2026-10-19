@@ -1,109 +1,84 @@
 # VPN AI Ops
 
-**准备好 VPS 和 Cloudflare 域名，把这个仓库交给 AI，完成个人代理网关的搭建和维护。**
+**准备好 VPS、Cloudflare 域名和本地 AI 的工具权限，把仓库交给 AI，由它完成个人代理网关的搭建与维护。**
 
-AI 负责理解资源、执行命令、诊断问题；脚本负责可重复的部署、证书续期、巡检、备份、升级和回滚。日常定时任务在 VPS 上运行，不需要 AI 会话一直在线。
+你负责提供资源、登录账号和必要授权；AI 负责检查环境、查询参数、填写配置、执行部署、排错和验证。无需具备 Linux、DNS 或 Docker 操作经验，部署命令由 AI 执行。
 
-> 状态：首版。自动化测试和本地真实协议验证见 [测试记录](docs/testing.md)。首次公开教学前，仍需在一台全新测试 VPS 和独立测试域名完成云端验收；不把本地测试等同于生产部署验证。
+> 当前状态：部署与维护脚本已实现，本地测试已通过；全新 VPS 云端验收仍待完成。本文的 AI 接入流程也需要按 [验收清单](docs/testing.md) 实测。当前脚本需要 SSH 公钥及 Cloudflare API Token；仅有 VPS 密码和 MCP 登录还不足以直接执行，需要 AI 先完成接入准备。
 
-## 搭建结果
+## 你只需要准备这些
 
-| 线路 | 入口 | 用途 |
+| 准备项 | 你提供什么 | AI 接下来做什么 |
 | --- | --- | --- |
-| VLESS + Reality | `vpn.<域名>:443/tcp`，DNS Only | 默认主线路 |
-| Hysteria2 | `vpn.<域名>:443/udp`，DNS Only | UDP 备用线路 |
-| VLESS + WebSocket + TLS | `ws.<域名>:8443/tcp`，Cloudflare Proxied | CDN 备用入口 |
+| 一台新 VPS | Ubuntu 24.04，公网 IPv4，登录用户名、SSH 端口；密码通过本地安全入口输入，或提供现成密钥路径 | 检查服务器、建立可用的 SSH 公钥登录、安装和配置服务 |
+| 一个域名 | 已托管并激活在 Cloudflare 的域名；建议使用独立测试域名开始 | 查询域名编号、检查已有解析和设置、准备两个连接入口 |
+| 本地 AI | 能操作终端、联网和 SSH 的 AI；Windows 使用 WSL | 检查或安装 Python、Git 等依赖，执行仓库里的工具 |
+| Cloudflare 授权 | 在 AI 工具中接入 Cloudflare API MCP，并登录授权；另为脚本与自动续期准备专用凭据 | 检查授权是否够用，能安全自动准备凭据时自行完成，否则引导你完成一次必要授权 |
+| 客户端设备 | 告诉 AI 用的是 Windows、macOS、Linux 还是 iPhone | 准备对应配置、尽可能自动导入，提示你完成系统授权 |
 
-服务器使用 Docker Compose 管理 sing-box。签发 Let's Encrypt 证书，输出 Clash Verge Rev / mihomo 配置及 Shadowrocket 导入链接。
+VPS 建议至少 1 GiB 内存、2 GiB 空闲磁盘，支持 amd64 / arm64。已有网站或其他业务的服务器不作为首次搭建对象。
 
-这里的“VPN”是个人代理网关：电脑通过客户端的 TUN 模式接管流量，并非企业站点互联 VPN。首版不安装 Sub2API、面板或公开订阅服务。
-
-## 你需要准备
-
-1. 一台**全新的 Ubuntu 24.04 VPS**，公网 IPv4，amd64 或 arm64；建议至少 1 GiB 内存、2 GiB 空闲磁盘。
-2. 一个已在 Cloudflare 激活的域名。SSL/TLS 模式设为 **Full (strict)**。已有网站使用其他模式时先评估，不要为演示直接改生产域名全站设置。
-3. 在 Cloudflare 创建一个 **API Token（给脚本使用的专用钥匙）**，并且只授权给你用来搭建 VPN 的域名。它用于自动设置域名解析和续期证书。**不懂 Token、Zone 或权限怎么选？直接照着 [Cloudflare Token 新手教程](docs/cloudflare-token.md) 操作**，里面有逐项填写说明；来源 IP 限制是可选项。
-4. 可用的 SSH 公钥登录：root，或带免密 sudo 的账户。VPS 有 Python 3.10+（Ubuntu 24.04 通常自带）。
-5. 本地/AI 执行环境：macOS、Linux 或 Windows WSL，Python 3.10+、OpenSSH、Git；无需 pip 安装。AI 必须具有终端、SSH 和联网能力。
-6. 云安全组允许实际 SSH 端口、`443/tcp`、`443/udp`、`8443/tcp`。无需开放 `80`。项目不会操作云厂商安全组。
+**环境准备也可以交给 AI 带着做。** 把下面的任务发给它，它会先阅读 [AI 环境与授权准备](docs/ai-environment.md)，只让你处理登录、秘密输入或工具无法代办的权限操作。不要把 VPS 密码、Token 或私钥正文发到聊天里。
 
 ## 把这段话交给 AI
 
-先克隆本项目，或在 AI 工具中打开仓库目录，然后发送：
+在本地 AI 中打开本仓库，发送下面这段话；方括号填普通资源信息，缺少的可以先留空。
 
 ```text
-请阅读本仓库 AGENTS.md、README.md 和 prompts/deploy.md，使用现有脚本帮我搭建个人 VPN。
-我已准备一台全新 Ubuntu 24.04 VPS 和 Cloudflare 托管域名。
-先收集缺失的非敏感参数，指导我在本机安全设置 Token 和 SSH 登录，运行 plan 与 preflight。
-预检通过后执行部署、导出客户端配置、逐条验证三条线路，并安装项目已有的自动维护任务。
-发现已有业务或 DNS 冲突时先停下说明。不要把秘密写入聊天或 Git。
-交付时区分已验证项与需要我在手机/电脑上完成的 TUN、DNS 验收。
+请阅读本仓库 AGENTS.md、docs/ai-environment.md 和 prompts/deploy.md，帮我完成个人 VPN 的搭建与验证。
+
+我的 VPS 公网 IP：[IP]
+SSH 用户名：[通常为 root]；端口：[通常为 22]
+登录方式：[已有 SSH Agent / 密钥文件路径 / 只有密码，需安全输入]
+Cloudflare 域名：[域名]
+使用设备：[操作系统或手机类型]
+Cloudflare API MCP：[已连接 / 需要协助准备]
+
+请先检查你实际拥有的终端、SSH、MCP 和秘密输入能力。
+可以自行查询的参数请自行查询；配置、命令、安装、部署和排错都由你执行，不要让我逐条照着操作。
+需要密码或续期 Token 时，使用本地安全入口，不要要求发到聊天。
+如果缺少权限或工具，只告诉我具体缺什么、在哪里完成一次必要操作，然后继续。
+
+我授权你在这台全新 VPS 上按仓库方案完成接入准备和部署，包括添加并验证专用 SSH 公钥、
+创建本项目 DNS、安装依赖、签发证书、启动服务和维护任务。
+先运行 plan 和 preflight；发现已有业务、DNS 冲突或会影响其他服务的设置时，先报告具体方案。
+完成三线路真实连接验证，尽可能自动完成本机客户端配置，系统授权由我操作。
+最后分别报告服务端、三线路出口、设备 TUN/DNS 的验证结果，并给出后续维护入口。
 ```
 
-第一次使用 Cloudflare，请先看 [Token 创建教程](docs/cloudflare-token.md)，再按 [资源填写清单](docs/setup.md) 准备信息。完整部署提示词在 [prompts/deploy.md](prompts/deploy.md)。
+接下来由 AI 持续实施。正常情况下，你只需在它明确指出需要时完成一次登录、授权或安全输入。已有授权范围内的常规步骤不应反复询问。
 
-## 实际执行的命令
+## 最后会得到什么
 
-在仓库根目录执行。AI 会帮你填写配置和解释结果。
+| 线路 | 作用 |
+| --- | --- |
+| VLESS + Reality | 默认主线路，TCP 443 |
+| Hysteria2 | UDP 备用线路，UDP 443 |
+| VLESS + WebSocket + TLS | 通过 Cloudflare 的备用入口，TCP 8443 |
 
-```bash
-python3 vpnctl.py init
-# 编辑 config.local.json，只填非敏感资源信息
-python3 vpnctl.py plan
-```
+AI 会交付 Clash Verge Rev / mihomo 配置、Shadowrocket 导入链接及验证结果。客户端文件包含连接凭据，应只在自己的设备使用。这里的 VPN 是通过客户端接管流量的个人代理网关，首版不包含面板、Sub2API 或公开订阅服务。
 
-首次 SSH 连接前，通过云控制台核对主机指纹，再手动连接一次，将已核对的主机加入 `known_hosts`。脚本始终使用严格主机校验，不会关闭检查，也不会自动信任未经核实的指纹。
+服务启动后，VPS 自行完成证书续期、每日巡检和每周备份；AI 会话和本地电脑不需要一直开着。默认不会发送外部告警，也不会自动升级软件或重启系统。备份保留在同一台 VPS，尚不包含异地容灾。
 
-在将要运行部署命令的 Bash / Zsh 终端中，先单独执行下面这一行：
+设备第一次开启 VPN/TUN 时，可能需要你同意操作系统权限。AI 没有手机或桌面控制工具时，会给出最短的导入步骤。没有完成设备验收时，报告应明确写“未验证”。
 
-```bash
-read -rs CF_API_TOKEN
-```
+## 以后怎么维护
 
-粘贴 Token 后按回车。输入过程中看不到字符是正常的。然后在**同一个终端**继续执行：
+打开同一个项目，直接告诉 AI：
 
-```bash
-export CF_API_TOKEN
-python3 vpnctl.py preflight
-python3 vpnctl.py deploy
-unset CF_API_TOKEN
-```
+- “帮我检查 VPN 是否正常，看看证书和备份有没有问题。”
+- “连接失败了，请检查并定位原因。”
+- “帮我备份当前部署。”
+- “帮我评估升级版本，说明影响后执行升级并验证。”
 
-若 AI 使用另一个终端或云端环境，它不会自动获得这里设置的 Token；请按 [教程中的使用说明](docs/cloudflare-token.md#use-token) 让 AI 指导你安全传入，不要发到聊天里。
+AI 按 [维护提示词](prompts/maintain.md) 和 [运维手册](docs/operations.md) 执行。脚本支持备份、升级和回滚；升级必须选定精确版本并核对迁移说明。
 
-`deploy` 会创建缺失 DNS、安装依赖、签发证书、生成密钥、启动容器，安装每日巡检与每周备份，最后将客户端文件保存到 `artifacts/`。重新执行不会轮换已生成密钥；完整部署已有标记时只进行健康检查和重新导出。
+## 使用与维护资料
 
-证书续期所需 Token 会由 acme.sh 保存在服务器受限目录内，这是无人值守续期的必要条件。不会复制到本地输出或 Git。
+- [环境与授权准备](docs/ai-environment.md)：首次连接、MCP、秘密传递和工具缺失时怎么办。
+- [参数准备](docs/setup.md)、[部署提示词](prompts/deploy.md)：由 AI 阅读并执行。
+- [Cloudflare Token 指南](docs/cloudflare-token.md)：无法自动准备凭据时的备用步骤说明。
+- [运维命令](docs/operations.md)、[故障排查](docs/troubleshooting.md)、[架构与边界](docs/architecture.md)。
+- [测试与验收](docs/testing.md)、[发布说明](docs/sharing.md)、[官方来源](docs/sources.md)。
 
-部署后由 AI 安装/找到官方 mihomo 核心，再验证真实连接：
-
-```bash
-python3 vpnctl.py verify --mihomo /absolute/path/to/mihomo
-```
-
-该命令启动临时本地核心，依次测试 Reality、Hysteria2、WebSocket 的出口 IP，结束后关闭进程。它不接管系统流量，也不代替用户设备上的 DNS 验收。
-
-## 后续维护
-
-| 动作 | 命令或调度 | 行为 |
-| --- | --- | --- |
-| 巡检 | `python3 vpnctl.py status` | 返回脱敏 JSON；服务端每日自动检查 |
-| 备份 | `python3 vpnctl.py backup` | 每周自动备份，服务器保留最近 8 份 |
-| 重新导出 | `python3 vpnctl.py export` | 私有文件写到 `artifacts/` |
-| 升级 | `python3 vpnctl.py upgrade --version X.Y.Z` | 指定稳定版本，校验、备份、重建；服务端失败自动回滚 |
-| 回滚 | `python3 vpnctl.py rollback --backup <返回的文件名>` | 先备份当前状态，恢复旧配置和镜像，保留已续期证书 |
-| 证书续期 | acme.sh cron | 续期后重启本项目的 sing-box 容器加载证书 |
-
-`X.Y.Z` 是待选择的真实版本，不是可直接复制的值。当前模板基线为 sing-box **1.13.14**，部署时固定镜像 digest；不追踪 `latest`。升级成功会同步本地配置中的版本号，并要求重新测试客户端。
-
-自动维护**不包含**自动升大版本、重启操作系统、异地备份或默认外部告警。巡检结果写到 `/opt/vpn-ai-ops/reports/`；失败可由 systemd 状态或日志监控采集。操作详见 [维护手册](docs/operations.md)，可复制 [维护提示词](prompts/maintain.md)。
-
-## 分享前看这里
-
-- [分享讲稿与演示顺序](docs/sharing.md)
-- [故障排查](docs/troubleshooting.md)
-- [架构、数据边界与回滚范围](docs/architecture.md)
-- [测试与云端验收清单](docs/testing.md)
-- [上游官方文档与版本依据](docs/sources.md)
-
-`config.local.json`、`artifacts/`、Token、密钥、备份均不应提交。`.gitignore` 只是防误操作，公开前还应运行 `python3 scripts/check_public_files.py` 并人工检查暂存区。许可证：[MIT](LICENSE)。
+公开前由 AI 运行 `python3 scripts/check_public_files.py` 并检查 Git 差异。真实配置、客户端文件、Token、密钥和备份不得提交。许可证：[MIT](LICENSE)。

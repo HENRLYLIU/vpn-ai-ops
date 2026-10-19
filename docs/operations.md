@@ -6,6 +6,25 @@
 
 退出码：`0` 成功；`1` 参数、连接、命令失败；`2` 巡检或客户端验收未通过。JSON 的 warnings 即使不阻止运行也需要 AI 在报告中呈现。
 
+## 首次部署的命令顺序（由 AI 执行）
+
+先按 [环境准备](ai-environment.md) 完成可信 SSH 公钥登录和凭据注入。当前 CLI 不接受 SSH 密码，也不会从 MCP 自动取得 Token。以下命令供 AI 实施与排错使用，用户不需要逐条复制执行。
+
+```bash
+python3 vpnctl.py init
+# AI 按 docs/setup.md 填写 config.local.json；已有配置时先检查，不重复 init
+python3 vpnctl.py plan
+# CF_API_TOKEN 已通过安全渠道注入本次实际执行环境
+python3 vpnctl.py preflight
+python3 vpnctl.py deploy
+python3 vpnctl.py status
+python3 vpnctl.py verify --mihomo /absolute/path/to/mihomo
+```
+
+`verify` 的路径由 AI 替换为已核对来源与摘要的真实核心路径。`deploy` 自动导出私有客户端文件到 `artifacts/`。完成或失败退出时，由 AI 在持有凭据的实际会话中清理临时环境变量；不假定另一工具调用的 `unset` 能清理先前进程或秘密存储。VPS 上 acme.sh 的续期凭据需保留。
+
+完整部署已有 ready 标记时，再次 `deploy` 只做健康检查及重新导出，不轮换密钥。单独重新导出使用 `export`；更换版本使用 `upgrade`。当前配置基线 sing-box 1.13.14，部署固定 digest，不追踪 latest。
+
 ## 服务器目录
 
 ```text

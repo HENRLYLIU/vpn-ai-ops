@@ -1,38 +1,37 @@
-# 资源与参数
+# 参数准备：由 AI 查询与填写
 
-第一次配置 Cloudflare？先看 [Cloudflare API Token 新手教程](cloudflare-token.md)。它会解释 Token 和 Zone 是什么、三个权限分别做什么，以及页面上每一步怎么选。
+本页给执行 AI 阅读。用户只提供 VPS 地址、登录身份、域名、设备类型和必要授权；不要把本表当成需要用户逐格填写的问卷。先按 [环境与授权准备](ai-environment.md) 检查工具和凭据。
 
-AI 一次收集以下非敏感信息即可，不要索取私钥全文或要求用户把 Token 粘贴到聊天。
+## 参数来源
 
-| 字段 | 示例 | 说明 |
-| --- | --- | --- |
-| server_ip | `203.0.113.10` | 示例地址不可部署，替换为 VPS 公网 IPv4 |
-| ssh_user | `root` | 也可使用免密 sudo 用户 |
-| ssh_port | `22` | 不能与 443/8443 冲突 |
-| ssh_identity_file | `""` | 留空用 SSH 默认密钥/Agent；否则填本机路径 |
-| zone_id | 32 位十六进制 | 域名区域的编号，不是 Token 或 Account ID；[查看获取步骤](cloudflare-token.md#find-zone-id) |
-| base_domain | `example.com` | 必须与 Zone 名称完全一致 |
-| vpn_domain | `vpn.example.com` | 项目创建 DNS Only A 记录 |
-| ws_domain | `ws.example.com` | 项目创建 Proxied A 记录 |
-| acme_email | `you@example.com` | 证书账户邮箱 |
-| sing_box_version | `1.13.14` | 基线稳定版本；升级前读迁移说明 |
-| reality_server | `gateway.icloud.com` | VPS 预检必须通过该目标的 TLS 1.3 握手 |
+| 字段 | AI 如何获取 |
+| --- | --- |
+| server_ip | 用户指定的目标 VPS 公网 IPv4；不从其他私人运维资料猜测 |
+| ssh_user / ssh_port | 使用用户提供值；未提供时说明先尝试 root / 22，失败后只询问缺失信息 |
+| ssh_identity_file | 已验证的专用密钥路径；使用默认密钥或 SSH Agent 时留空。不读取私钥正文 |
+| zone_id | 通过获授权的 Cloudflare API MCP 或 API，按 base_domain 精确查询 |
+| base_domain | 用户提供并已在其 Cloudflare 账号激活的域名 |
+| vpn_domain / ws_domain | 默认 vpn.<域名>、ws.<域名>，先检查冲突；有冲突先解释，不覆盖 |
+| acme_email | 用户指定的证书联系邮箱，缺少时与其他无法查询的信息一次询问 |
+| sing_box_version | 使用当前仓库基线 1.13.14；部署固定 digest，不擅自切换 latest |
+| reality_server | 默认使用模板中的 gateway.icloud.com，由 VPS 预检验证 TLS 1.3 可达性 |
 
-步骤：
+运行 `init`，由 AI 填写被 Git 忽略的 `config.local.json`。Token 仅通过 `CF_API_TOKEN` 注入，密码不写 JSON。不要输出完整配置。
 
-1. 在 Cloudflare 激活 Zone，并手动确认 Full (strict)。本项目只读检查此全站设置。
-2. 按 [Token 新手教程](cloudflare-token.md) 为这个域名创建专用钥匙，添加 DNS Edit、Zone Read、Zone Settings Read 三条权限。教程也说明了可选的 IP 白名单和有效期设置。
-3. 在云安全组开放实际 SSH 端口、443 TCP/UDP、8443 TCP。Docker 发布端口不能仅依赖 UFW 做访问控制。
-4. 从云控制台取得 SSH 主机公钥指纹，在首次登录时比对。不要用 `StrictHostKeyChecking=no` 绕过验证。
-5. 手动验证公钥登录、`python3 --version`，非 root 用户还要验证 `sudo -n true`。脚本没有自动装公钥、改 sshd 或关密码登录。
-6. 运行 `init`，填写 `config.local.json`；从终端隐藏输入 `CF_API_TOKEN`。
-7. 运行 `plan` 和 `preflight`。示例配置只能用于离线计划，不能部署。
+## 部署前由 AI 完成
 
-客户端侧：
+1. 核实新 Ubuntu 24.04 VPS、Python 3.10+、可信 SSH 公钥登录、root 或已具备免密 sudo 的账户。
+2. 查询 Zone 的激活状态、DNS 和 Full (strict)；共享 Zone 设置或已有业务冲突按 AGENTS.md 处理。
+3. 验证实际执行进程可用的受限 Token。MCP OAuth 不能代替当前 CLI 的 Token 输入；路径见环境清单。
+4. 检查云安全组的实际 SSH 端口、443 TCP/UDP、8443 TCP；不需要开放 80。没有云厂商控制权限时只请求必要的放行操作。Docker 发布端口不能仅依赖 UFW 做访问控制。
+5. 由 AI 执行 `plan`、`preflight`，按 [部署流程](../prompts/deploy.md) 持续实施。
 
-- Clash Verge Rev 导入 `artifacts/mihomo.yaml`。文件使用合法的 JSON/YAML 兼容语法，避免依赖额外 YAML 库。
-- 默认只提供最小分流：私网、`.lan`、`.local`、`.cn` 直连，其余走代理。这不是完整国内域名规则库；用户可在理解规则后扩展。
-- 配置的 TUN 默认关闭，交由 GUI 获取系统权限并开启。`verify` 不自动提升本机权限。
-- 规则组 `PROXY` 可手动切换线路或选择 `AUTO`。自动回退组自身会检查可用性。
-- Shadowrocket 导入 `artifacts/shadowrocket.txt` 中三条链接，逐条验收。不同客户端版本的链接兼容性应实机确认。
-- 这些文件含可用凭据，只在自己的设备上传输，不上传订阅转换网站或公开分享图。
+## 客户端由 AI 尽可能配置
+
+- 为目标设备选择官方客户端；安装第三方软件需要的系统授权由用户完成，已有授权范围内不反复询问。
+- Clash Verge Rev 导入 `artifacts/mihomo.yaml`，其内容采用 JSON/YAML 兼容语法。具备桌面工具时由 AI 导入，否则只给用户最短导入步骤。
+- TUN 默认关闭，由 GUI 获取系统权限后开启；`verify` 不接管系统流量。切换本机路由前保留原配置和恢复步骤。
+- Shadowrocket 导入 `artifacts/shadowrocket.txt` 的三条链接；无手机控制能力时请用户导入并逐条测试。付费购买、账号登录与系统授权由用户决定和完成。
+- 默认只提供最小分流：私网、`.lan`、`.local`、`.cn` 直连，其余走代理，不是完整国内域名规则库。验收不得把任意国内网站都当作应直连对象。
+- 规则组 `PROXY` 可选线路或 `AUTO`；自动回退组会检查可用性。不要把自动回退误认为三条线路已分别通过验收。
+- 文件含可用凭据，只在用户设备间私下传输，不上传订阅转换网站、公开聊天或公开材料。

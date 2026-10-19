@@ -1,4 +1,6 @@
-# Cloudflare API Token 新手教程
+# Cloudflare API Token 配置指南
+
+> 这是首次授权的备用说明。通常先把 [README](../README.md) 中的任务交给 AI，由它检查 [工具与凭据准备](ai-environment.md)，能安全自动完成的就由它执行。只有工具无法安全创建或交付 Token 时，才需要你按本页完成一次准备；后续配置与部署仍交给 AI。Cloudflare MCP 已登录不等于现有部署脚本或 VPS 已获得续期凭据。
 
 你需要在 Cloudflare 里创建一把**给部署脚本使用的专用钥匙**。有了它，脚本才能帮你设置域名解析，并在以后自动续期证书。
 
