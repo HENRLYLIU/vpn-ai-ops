@@ -1,0 +1,49 @@
+# OS and editor files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials/
+secrets/
+
+# Dependencies and package-manager caches
+node_modules/
+.pnpm-store/
+
+# Build and coverage output
+dist/
+build/
+target/
+unpackage/
+.next/
+.nuxt/
+coverage/
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local deployment identity, generated credentials, and validation binaries
+config.local.json
+config.*.local.json
+artifacts/
+reports/
+backups/
+.tools/
+.project-context/
+*.tar.gz
+*.gz
