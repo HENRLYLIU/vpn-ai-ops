@@ -1,6 +1,6 @@
 # 官方来源与版本基线
 
-核对日期：2026-10-19。本次环境没有可调用的 Context7 MCP，直接核对上游官方资料。使用此项目时若 Context7 可用，先 resolve-library-id 再 query-docs；升级以目标版本文档为准。
+核对日期：2026-10-19。本项目参考上游官方文档编写；升级前请核对目标版本的官方说明。
 
 - [Docker Ubuntu 官方 apt 安装](https://docs.docker.com/engine/install/ubuntu/)：官方软件源、签名与 Compose plugin。不会运行第三方 Docker 一键脚本。
 - [sing-box VLESS inbound](https://sing-box.sagernet.org/configuration/inbound/vless/)、[TLS / Reality](https://sing-box.sagernet.org/configuration/shared/tls/)、[Hysteria2 inbound](https://sing-box.sagernet.org/configuration/inbound/hysteria2/)、[WebSocket transport](https://sing-box.sagernet.org/configuration/shared/v2ray-transport/)。
